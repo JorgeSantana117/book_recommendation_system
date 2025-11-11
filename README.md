@@ -9,7 +9,7 @@ El sistema permite la autenticación de usuarios, la personalización de prefere
 ## 🚀 Estructura del Proyecto
 
 ```
-book-rec-mvp/
+book-rec-sys/
 │
 ├── frontend/                      # Aplicación React
 │   ├── src/
@@ -82,4 +82,3 @@ http://localhost:5173/
 
 Curso: *Análisis, diseño y construcción de software*  
 Equipo: *31*
-# book_recommendation_system
