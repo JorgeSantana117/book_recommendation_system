@@ -18,8 +18,8 @@ async function getConfig(){
   return cfg || { weights: { genre:0.45, tag:0.25, author:0.2, rating:0.1 }, ema_alpha:0.7, coldstart_sort:'rating_avg;rating_count;year', suggestions_limit:20 }
 }
 // CORREGIDO: pageSize: 100
-async function loadHidden(userId){ const res = await Backendless.Data.of(HiddenTable).find({ where:`user_id='${userId}'`, pageSize:100 }); return new Set(res.map(x=>x.book_id)) }
-async function loadAgg(userId){ const res = await Backendless.Data.of(UserAggTable).find({ where:`user_id='${userId}'` }); return res[0] || { genre_affinity:'{}', tag_affinity:'{}', author_affinity:'{}' } }
+async function loadHidden(userId){ const res = await Backendless.Data.of(HiddenTable).find({ where:`user_id='${userId}' OR ownerId='${userId}'`, pageSize: 100 }); return new Set(res.map(x=>x.book_id)) }
+async function loadAgg(userId){ const res = await Backendless.Data.of(UserAggTable).find({ where:`user_id='${userId}' OR ownerId='${userId}'` }); return res[0] || { genre_affinity:'{}', tag_affinity:'{}', author_affinity:'{}' } }
 
 async function coldStart(user, cfg){
   const prefGenres = parseList(user.preferred_genres), prefFormats=parseList(user.preferred_formats), lang=user.language_pref
@@ -77,7 +77,7 @@ class SuggestionsService {
     if(limit) cfg.suggestions_limit = limit
     const user=await getUser()
     const userId=user.objectId || user.id
-    const fb = await Backendless.Data.of(FeedbackTable).find({ where:`user_id='${userId}'`, pageSize: 1 })
+    const fb = await Backendless.Data.of(FeedbackTable).find({ where:`user_id='${userId}' OR ownerId='${userId}'`, pageSize: 1 })
     const hidden=await loadHidden(userId)
     let payload
     if(!user.onboarding_done || fb.length===0) payload=await coldStart(user,cfg)

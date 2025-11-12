@@ -33,8 +33,8 @@ export default function SignIn() {
           window.localStorage.removeItem('onboardingPending')
         } catch {}
       }
-      // go to suggestions
-      nav('/suggestions')
+      // go to catalog
+      nav('/catalog')
     } catch (e) {
       setErr(e?.response?.data?.message || 'Sign in failed')
     }

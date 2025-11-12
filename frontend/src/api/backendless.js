@@ -78,7 +78,8 @@ export const auth = {
     const res = await rest.post('/users/login', { login, password })
     // Backendless may return user-token in different shapes; try common keys
     const token = res.data?.['user-token'] || res.data?.userToken || res.data?.userToken
-    if (token) setToken(token)
+    if (token) setToken(token);
+    try { if (typeof window!=='undefined' && window.localStorage) window.localStorage.setItem('userEmail', login) } catch (_) {}
     return res.data
   },
 
@@ -86,15 +87,27 @@ export const auth = {
    * Logout: clears local token and calls Backendless logout route if available.
    * Backendless logout endpoint is /users/logout
    */
-  async logout() {
-    try {
-      // call logout endpoint (best-effort)
-      await rest.post('/users/logout')
-    } catch (e) {
-      // ignore server-side errors; still clear client token
+async logout() {
+  try {
+    const token = getToken();
+    if (token) {
+      // REST logout is a GET and requires the user-token header
+      const url = `${API_BASE}/${APP_ID}/${REST_KEY}/users/logout`;
+      await axios.get(url, { headers: { 'user-token': token } });
     }
-    clearToken()
-  },
+  } catch (e) {
+    // non-fatal; we'll clear local state anyway
+    console.warn('logout request failed (ignored):', e?.response?.status || e);
+  } finally {
+    // always clear local session
+    clearToken();
+    try { if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('userEmail');
+      window.localStorage.removeItem('onboardingDone');
+      window.localStorage.removeItem('onboardingPending');
+    }} catch (_) {}
+  }
+},
 
   /**
    * me(): validate token and return full Users row
@@ -130,6 +143,33 @@ export const auth = {
   }
 }
 
+
+// ----------------------
+// Current user helpers
+// ----------------------
+export async function currentUserId() {
+  // Try auth.me() first
+  try {
+    const me = await auth.me();
+    const oid = me?.objectId || me?.id || me?.user?.objectId || me?.userId || me?.user?.id;
+    if (oid) return oid;
+  } catch (e) {
+    // ignore
+  }
+  // Fallback: try to get Users row by email stored locally (if any)
+  try {
+    const email = (typeof window !== 'undefined' && window.localStorage) ? window.localStorage.getItem('userEmail') : null;
+    if (email) {
+      const where = `email='${String(email).replace(/'/g, "''")}'`;
+      const res = await rest.get(`/data/Users?where=${encodeURIComponent(where)}&pageSize=1`);
+      const rows = res.data;
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows[0].objectId || rows[0].id || rows[0].objectID;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
 // ----------------------
 // Books API
 // ----------------------
@@ -179,17 +219,44 @@ export const books = {
 // ----------------------
 export const interactions = {
   async rate({ book_id, rating, comment = '' }) {
-    const body = { book_id, rating, comment }
-    const res = await rest.post('/data/Feedback', body)
-    try { await services.recomputeAggregates() } catch (e) {}
-    return res.data
+    const user_id = await currentUserId();
+    if (!user_id) throw new Error('Not authenticated (no user id)');
+    const created_at = new Date().toISOString();
+
+    const body = {
+      book_id: String(book_id),
+      user_id,
+      rating: Number(rating),
+      comment,
+      created_at
+    };
+
+    const res = await rest.post('/data/Feedback', body);
+    // Try to recompute aggregates (non-blocking; log errors only)
+    try {
+      await services.recomputeAggregates();
+    } catch (e) {
+      console.warn('recomputeAggregates failed (non-fatal):', e);
+    }
+    return res.data;
   },
 
   async hide({ book_id }) {
-    const res = await rest.post('/data/HiddenItems', { book_id })
-    return res.data
+    const user_id = await currentUserId();
+    if (!user_id) throw new Error('Not authenticated (no user id)');
+    const created_at = new Date().toISOString();
+
+    const body = {
+      book_id: String(book_id),
+      user_id,
+      created_at
+    };
+
+    const res = await rest.post('/data/HiddenItems', body);
+    return res.data;
   }
-}
+};
+
 
 // ----------------------
 // Profile (update current user)
@@ -253,6 +320,7 @@ export const profile = {
     if (payload.preferred_genres !== undefined) body.preferred_genres = payload.preferred_genres
     if (payload.preferred_formats !== undefined) body.preferred_formats = payload.preferred_formats
     if (payload.language_pref !== undefined) body.language_pref = payload.language_pref
+    if (payload.onboarding_done !== undefined) body.onboarding_done = Boolean(payload.onboarding_done)
     if (payload.onboarding_done !== undefined) body.onboarding_done = payload.onboarding_done
 
     try {

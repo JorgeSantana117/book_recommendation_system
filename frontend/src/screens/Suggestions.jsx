@@ -78,7 +78,7 @@ export default function Suggestions() {
           {items.map((it, i) => (
             <div key={it.objectId || it.id || i} style={{border:'1px solid #eee', padding:12, borderRadius:8}}>
               <div style={{fontWeight:700}}>{it.title || it.name || 'Untitled'}</div>
-              <div style={{fontSize:13, color:'#666', marginTop:6}}>{it.author || it.subtitle || ''}</div>
+              <div style={{fontSize:13, color:'#666', marginTop:6}}>{it.authors || it.subtitle || ''}</div>
             </div>
           ))}
         </div>
