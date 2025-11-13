@@ -18,67 +18,61 @@ export default function Suggestions() {
 
         if (res && Array.isArray(res.items)) {
           setItems(res.items)
+        } else if (Array.isArray(res)) {
+          setItems(res)
         } else {
           setItems([])
-          console.warn('La respuesta de Sugerencias se recibió, pero faltaba el array "items".', res)
         }
-        
       } catch (e) {
-        // Compose friendly message for the UI and rich debug for console
-        let friendly = 'Failed to load suggestions'
-        try {
-          if (e?.message) friendly = `${friendly}: ${e.message}`
-          if (e?.response) {
-            const r = e.response
-            // build friendly details
-            const serverMsg = r.data?.message || r.data?.error || JSON.stringify(r.data)
-            friendly = `${friendly}: ${serverMsg} (HTTP ${r.status})`
-            console.error('Suggestions load failed (detailed):', {
-              url: r.config?.url || '(unknown)',
-              method: r.config?.method,
-              status: r.status,
-              requestBody: r.config?.data,
-              responseBody: r.data,
-              responseHeaders: r.headers
-            })
-          } else {
-            console.error('Suggestions load error (no response):', e)
-          }
-        } catch (xx) {
-          console.error('Error while preparing Suggestions debug info', xx)
-        }
-        setErr(friendly)
+        console.error('Suggestions error', e)
+        setErr(
+          'Could not load suggestions. Check your Backendless configuration or see the browser console (Network tab) for full request and response details.'
+        )
       } finally {
         if (mounted) setLoading(false)
       }
     }
     load()
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+    }
   }, [])
 
   return (
-    <div style={{maxWidth:900, margin:'20px auto'}}>
-      <h2>Suggestions</h2>
-
-      {loading && <p>Loading suggestions…</p>}
-
-      {err && (
-        <div style={{background:'#fff4f4', border:'1px solid #ffd0d0', padding:12, borderRadius:6}}>
-          <p style={{color:'#a00', margin:0}}><strong>{err}</strong></p>
-          <p style={{marginTop:8, marginBottom:0, fontSize:13, color:'#333'}}>Check browser console (Network tab) for full request and response details.</p>
+    <div className="page">
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">Suggestions</h1>
+          <p className="page-subtitle">
+            Titles recommended based on your feedback, ratings and hidden items.
+          </p>
         </div>
-      )}
+      </header>
+
+      {loading && <p className="text-muted">Loading suggestions…</p>}
+
+      {err && !loading && <div className="alert alert-error">{err}</div>}
 
       {!loading && !err && items && items.length === 0 && (
-        <p>No suggestions available right now.</p>
+        <p className="text-muted mt-md">
+          No suggestions available right now. Try rating or hiding some books
+          in the catalog first.
+        </p>
       )}
 
       {!loading && !err && items && items.length > 0 && (
-        <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:12}}>
+        <div className="suggestions-grid">
           {items.map((it, i) => (
-            <div key={it.objectId || it.id || i} style={{border:'1px solid #eee', padding:12, borderRadius:8}}>
-              <div style={{fontWeight:700}}>{it.title || it.name || 'Untitled'}</div>
-              <div style={{fontSize:13, color:'#666', marginTop:6}}>{it.authors || it.subtitle || ''}</div>
+            <div
+              key={it.objectId || it.id || i}
+              className="suggestion-card"
+            >
+              <div className="suggestion-title">
+                {it.title || it.name || 'Untitled'}
+              </div>
+              <div className="suggestion-subtitle">
+                {it.authors || it.subtitle || ''}
+              </div>
             </div>
           ))}
         </div>

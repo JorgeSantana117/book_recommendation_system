@@ -23,25 +23,96 @@ export default function BookDetail() {
     setMsg('Hidden. This title will not appear in Suggestions.')
   }
 
-  if (!b) return <p>Loading…</p>
-  return (
-    <div style={{maxWidth:700, margin:'20px auto'}}>
-      <h2>{b.title}</h2>
-      <p><i>{Array.isArray(b.authors)? b.authors.join(', ') : b.authors}</i> — {b.year || ''}</p>
-      <p>{b.description}</p>
-      <p>Genres: {Array.isArray(b.genres)? b.genres.join(', ') : b.genres}</p>
-      <p>Tags: {Array.isArray(b.tags)? b.tags.join(', ') : b.tags}</p>
+  if (!b) return <p className="text-muted">Loading…</p>
 
-      <div style={{marginTop:12}}>
-        <label>Rate: </label>
-        <select value={rating} onChange={e=>setRating(Number(e.target.value))}>
-          {[1,2,3,4,5].map(x=> <option key={x} value={x}>{x}</option>)}
+  const authors = Array.isArray(b.authors) ? b.authors.join(', ') : b.authors
+  const genres = Array.isArray(b.genres)
+    ? b.genres
+    : typeof b.genres === 'string'
+    ? b.genres.split(/[;,]/).map((x) => x.trim()).filter(Boolean)
+    : []
+  const tags = Array.isArray(b.tags)
+    ? b.tags
+    : typeof b.tags === 'string'
+    ? b.tags.split(/[;,]/).map((x) => x.trim()).filter(Boolean)
+    : []
+
+  return (
+    <div className="page">
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">{b.title}</h1>
+          <p className="detail-meta">
+            <i>{authors || 'Unknown author'}</i>
+            {b.year ? ` · ${b.year}` : ''}
+          </p>
+        </div>
+      </header>
+
+      {b.description && (
+        <>
+          <div className="detail-section-title">Description</div>
+          <p>{b.description}</p>
+        </>
+      )}
+
+      {genres.length > 0 && (
+        <>
+          <div className="detail-section-title">Genres</div>
+          <div className="pills">
+            {genres.map((g) => (
+              <span className="pill" key={g}>
+                {g}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tags.length > 0 && (
+        <>
+          <div className="detail-section-title">Tags</div>
+          <div className="pills">
+            {tags.map((t) => (
+              <span className="pill" key={t}>
+                {t}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="detail-section-title mt-md">Your feedback</div>
+      <div className="detail-actions">
+        <label className="form-label" style={{ marginBottom: 0 }}>
+          Rating
+        </label>
+        <select
+          className="select select-sm"
+          value={rating}
+          onChange={(e) => setRating(Number(e.target.value))}
+        >
+          {[1, 2, 3, 4, 5].map((x) => (
+            <option key={x} value={x}>
+              {x} ★
+            </option>
+          ))}
         </select>
-        <input placeholder='Optional comment' value={comment} onChange={e=>setComment(e.target.value)} style={{marginLeft:8}} />
-        <button onClick={onRate} style={{marginLeft:8}}>Submit</button>
-        <button onClick={onHide} style={{marginLeft:8}}>Hide</button>
+        <input
+          className="input input-sm"
+          placeholder="Optional comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+        />
+        <button className="btn btn-sm" onClick={onRate}>
+          Submit
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={onHide}>
+          Hide
+        </button>
       </div>
-      {msg && <p>{msg}</p>}
+
+      {msg && <p className="mt-sm text-muted">{msg}</p>}
     </div>
   )
 }

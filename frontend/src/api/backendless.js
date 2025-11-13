@@ -173,39 +173,71 @@ export async function currentUserId() {
 // ----------------------
 // Books API
 // ----------------------
+
+// internal helper that does the actual listing
+async function listBooks({
+  q = '',
+  genre = '',
+  format = '',
+  language = '',
+  rating_min = '',
+  page = 0,
+  pageSize = 20
+} = {}) {
+  const whereClauses = []
+
+  // Escape single quotes for SQL-like where clauses
+  const esc = (s) => String(s).replace(/'/g, "''")
+
+  if (language) whereClauses.push(`language='${esc(language)}'`)
+  if (format) whereClauses.push(`format='${esc(format)}'`)
+  if (rating_min !== '' && rating_min !== null && rating_min !== undefined) {
+    const rn = Number(rating_min)
+    if (!Number.isNaN(rn)) whereClauses.push(`rating_avg>=${rn}`)
+  }
+  if (genre) {
+    // genres stored as semicolon delimited string -> use LIKE match
+    whereClauses.push(`genres LIKE '%${esc(genre)}%'`)
+  }
+
+  // Title keyword search (simple contains). Escape single quotes only.
+  if (q) {
+    const safeQ = esc(q)
+    whereClauses.push(`title LIKE '%${safeQ}%'`)
+  }
+
+  const params = { pageSize, offset: page * pageSize }
+  const query = new URLSearchParams(params)
+  if (whereClauses.length) query.append('where', whereClauses.join(' AND '))
+
+  const res = await rest.get(`/data/Books?${query.toString()}`)
+  return res.data
+}
+
 export const books = {
   /**
-   * list books with optional filters
+   * list books with optional filters (old API, still works)
    */
-  async list({ q = '', genre = '', format = '', language = '', rating_min = '', page = 0, pageSize = 20 } = {}) {
-    const whereClauses = []
+  list: listBooks,
 
-    // Escape single quotes for SQL-like where clauses
-    const esc = (s) => String(s).replace(/'/g, "''")
-
-    if (language) whereClauses.push(`language='${esc(language)}'`)
-    if (format) whereClauses.push(`format='${esc(format)}'`)
-    if (rating_min !== '' && rating_min !== null && rating_min !== undefined) {
-      const rn = Number(rating_min)
-      if (!Number.isNaN(rn)) whereClauses.push(`rating_avg>=${rn}`)
-    }
-    if (genre) {
-      // genres stored as semicolon delimited string -> use LIKE match
-      whereClauses.push(`genres LIKE '%${esc(genre)}%'`)
-    }
-
-    // Title keyword search (simple contains). Escape single quotes only.
-    if (q) {
-      const safeQ = esc(q)
-      whereClauses.push(`title LIKE '%${safeQ}%'`)
-    }
-
-    const params = { pageSize, offset: page * pageSize }
-    const query = new URLSearchParams(params)
-    if (whereClauses.length) query.append('where', whereClauses.join(' AND '))
-
-    const res = await rest.get(`/data/Books?${query.toString()}`)
-    return res.data
+  /**
+   * search: API used by Catalog.jsx
+   * maps (q, language, format, rating) -> listBooks(...)
+   */
+  async search({ q = '', language = '', format = '', rating = '' } = {}) {
+    const rating_min =
+      rating === '' || rating === null || rating === undefined
+        ? ''
+        : Number(rating)
+    // reuse the same logic as listBooks, with a larger default pageSize
+    return listBooks({
+      q,
+      language,
+      format,
+      rating_min,
+      page: 0,
+      pageSize: 50
+    })
   },
 
   async get(id) {

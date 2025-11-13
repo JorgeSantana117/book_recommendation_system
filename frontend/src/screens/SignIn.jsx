@@ -14,42 +14,82 @@ export default function SignIn() {
     setErr('')
     try {
       await auth.signIn({ login, password })
+
       // fetch user info to persist email and onboarding flag synchronously
       try {
         const user = await auth.me()
         const email = user?.email || user?.user?.email || user?.login || login
-        const onboardingDone = (user?.onboarding_done === true || String(user?.onboarding_done) === 'true') ? 'true' : 'false'
-        try {
-          window.localStorage.setItem('userEmail', email)
-          window.localStorage.setItem('onboardingDone', onboardingDone)
-          // clear onboardingPending if previously set for some reason (signin means it's not a fresh signup)
-          window.localStorage.removeItem('onboardingPending')
-        } catch (e) { /* ignore localStorage errors */ }
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('userEmail', email || '')
+          const onboardingDone = user?.onboarding_done || user?.onboardingDone
+          if (onboardingDone) {
+            window.localStorage.setItem('onboardingDone', 'true')
+            window.localStorage.removeItem('onboardingPending')
+          } else {
+            window.localStorage.setItem('onboardingPending', 'true')
+          }
+        }
       } catch (e) {
-        // fallback: store email as login and conservative onboardingDone = 'true' (assume existing user)
-        try {
-          window.localStorage.setItem('userEmail', login)
-          window.localStorage.setItem('onboardingDone', 'true')
-          window.localStorage.removeItem('onboardingPending')
-        } catch {}
+        console.warn('Could not hydrate profile after sign-in', e)
       }
-      // go to catalog
+
       nav('/catalog')
     } catch (e) {
-      setErr(e?.response?.data?.message || 'Sign in failed')
+      setErr(e?.message || 'Sign-in failed')
     }
   }
 
   return (
-    <div style={{maxWidth:400, margin:'40px auto'}}>
-      <h2>Sign In</h2>
-      <form onSubmit={onSubmit}>
-        <input placeholder='Email' value={login} onChange={e=>setLogin(e.target.value)} style={{width:'100%',marginBottom:8}} />
-        <input placeholder='Password' type='password' value={password} onChange={e=>setPassword(e.target.value)} style={{width:'100%',marginBottom:8}} />
-        <button type='submit'>Sign In</button>
-      </form>
-      {err && <p style={{color:'crimson'}}>{err}</p>}
-      <p>No account? <Link to='/signup'>Sign Up</Link></p>
+    <div className="app-shell">
+      <div className="app-shell-inner">
+        <div className="auth-page">
+          <div className="auth-card">
+            <h1 className="auth-title">Welcome back</h1>
+            <p className="auth-subtitle">
+              Sign in to explore the catalog and get tailored book suggestions.
+            </p>
+
+            <form className="form" onSubmit={onSubmit}>
+              <div className="form-field">
+                <label className="form-label">Email</label>
+                <input
+                  className="input"
+                  placeholder="you@example.com"
+                  type="email"
+                  value={login}
+                  onChange={(e) => setLogin(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-field">
+                <label className="form-label">Password</label>
+                <input
+                  className="input"
+                  placeholder="Your password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="btn mt-md">
+                Sign in
+              </button>
+            </form>
+
+            {err && <div className="alert alert-error">{err}</div>}
+
+            <div className="form-footer">
+              <span>Don&apos;t have an account?</span>
+              <Link to="/signup" className="link">
+                Create account
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
