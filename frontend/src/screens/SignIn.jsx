@@ -12,21 +12,38 @@ export default function SignIn() {
   const onSubmit = async (e) => {
     e.preventDefault()
     setErr('')
+
     try {
       await auth.signIn({ login, password })
 
-      // fetch user info to persist email and onboarding flag synchronously
+      // fetch user info to persist email and onboarding flag
       try {
         const user = await auth.me()
-        const email = user?.email || user?.user?.email || user?.login || login
-        if (typeof window !== 'undefined') {
+
+        const email =
+          user?.email ||
+          user?.user?.email ||
+          user?.login ||
+          login
+
+        if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem('userEmail', email || '')
-          const onboardingDone = user?.onboarding_done || user?.onboardingDone
+
+          // Read onboarding_done from Backendless
+          const onboardingDoneValue =
+            user?.onboarding_done ?? user?.onboardingDone
+
+          const onboardingDone = Boolean(onboardingDoneValue)
+
           if (onboardingDone) {
+            // User already completed onboarding
             window.localStorage.setItem('onboardingDone', 'true')
             window.localStorage.removeItem('onboardingPending')
           } else {
-            window.localStorage.setItem('onboardingPending', 'true')
+            // Do NOT mark them as "pending" at login.
+            // Only sign-up/onboarding screens manage these flags.
+            window.localStorage.removeItem('onboardingPending')
+            window.localStorage.removeItem('onboardingDone')
           }
         }
       } catch (e) {

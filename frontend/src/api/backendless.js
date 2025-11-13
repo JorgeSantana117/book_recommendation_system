@@ -76,11 +76,34 @@ export const auth = {
    */
   async signIn({ login, password }) {
     const res = await rest.post('/users/login', { login, password })
-    // Backendless may return user-token in different shapes; try common keys
-    const token = res.data?.['user-token'] || res.data?.userToken || res.data?.userToken
-    if (token) setToken(token);
-    try { if (typeof window!=='undefined' && window.localStorage) window.localStorage.setItem('userEmail', login) } catch (_) {}
-    return res.data
+    const data = res.data
+
+    // token
+    const token = data?.['user-token'] || data?.userToken
+    if (token) setToken(token)
+
+    // store email + objectId for later
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const email = data?.email || login || ''
+        window.localStorage.setItem('userEmail', email)
+
+        const userId =
+          data?.objectId ||
+          data?.objectID ||
+          data?.id ||
+          data?.user?.objectId ||
+          data?.user?.id
+
+        if (userId) {
+          window.localStorage.setItem('userObjectId', String(userId))
+        }
+      }
+    } catch (_) {
+      // non-fatal
+    }
+
+    return data
   },
 
   /**
@@ -103,6 +126,7 @@ async logout() {
     clearToken();
     try { if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem('userEmail');
+      window.localStorage.removeItem('userObjectId');
       window.localStorage.removeItem('onboardingDone');
       window.localStorage.removeItem('onboardingPending');
     }} catch (_) {}
@@ -110,36 +134,65 @@ async logout() {
 },
 
   /**
-   * me(): validate token and return full Users row
-   * Implementation:
-   *  - calls validation endpoint to check token validity
-   *  - extracts objectId and then calls Data API to fetch Users/{objectId}
-   * Returns a full user record (the Data API row) when possible, or the raw validation response otherwise.
+   * me(): return full Users row for the current token
+   * Strategy:
+   *   1) Try objectId from localStorage -> GET /data/Users/{objectId}
+   *   2) Fallback: try to find by email -> GET /data/Users?where=email='...'
    */
   async me() {
     const token = getToken()
     if (!token) return null
 
-    // validation endpoint
-    const validateUrl = `${API_BASE}/${APP_ID}/${REST_KEY}/users/isvalidusertoken/${token}`
-    try {
-      const valRes = await axios.get(validateUrl)
-      const valData = valRes.data
-
-      // Try to find objectId in validation response (Backendless shapes vary)
-      const objectId = valData?.objectId || valData?.user?.objectId || valData?.userId || valData?.user?.id
-      if (!objectId) {
-        // If objectId not present, return the validation payload (token valid info)
-        return valData
-      }
-
-      // Fetch full Users row via Data API
-      const userRes = await rest.get(`/data/Users/${objectId}`)
-      return userRes.data
-    } catch (err) {
-      // If validation failed or fetching the user failed, return null for convenience
+    // helper to safely read localStorage
+    const getFromStorage = (key) => {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          return window.localStorage.getItem(key)
+        }
+      } catch (_) {}
       return null
     }
+
+    // 1) Try with objectId we saved at login
+    let objectId = getFromStorage('userObjectId')
+    if (objectId) {
+      try {
+        const res = await rest.get(`/data/Users/${objectId}`)
+        if (res?.data) return res.data
+      } catch (e) {
+        console.warn('auth.me(): failed by objectId, will fallback to email', e)
+      }
+    }
+
+    // 2) Fallback: find by email
+    const email = getFromStorage('userEmail')
+    if (!email) return null
+
+    try {
+      const where = `email='${String(email).replace(/'/g, "''")}'`
+      const res = await rest.get(
+        `/data/Users?where=${encodeURIComponent(where)}&pageSize=1`
+      )
+      const rows = res.data
+      if (Array.isArray(rows) && rows.length > 0) {
+        const user = rows[0]
+        // cache objectId for next time
+        const uid =
+          user?.objectId || user?.objectID || user?.id
+        if (uid) {
+          try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+              window.localStorage.setItem('userObjectId', String(uid))
+            }
+          } catch (_) {}
+        }
+        return user
+      }
+    } catch (e) {
+      console.warn('auth.me(): lookup by email failed', e)
+    }
+
+    return null
   }
 }
 
