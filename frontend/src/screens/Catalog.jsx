@@ -46,7 +46,7 @@ export default function Catalog() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Catalog</h1>
+          <h1 className="page-title">📚 Catalog</h1>
           <p className="page-subtitle">
             Browse the full library and open any title for details, rating and feedback.
           </p>

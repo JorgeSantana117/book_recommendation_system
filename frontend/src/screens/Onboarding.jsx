@@ -88,7 +88,7 @@ export default function Onboarding() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Fine-tune your recommendations</h1>
+          <h1 className="page-title">🎯 Fine-tune your recommendations</h1>
           <p className="page-subtitle">
             Choose what you like to read so we can suggest better books.
           </p>

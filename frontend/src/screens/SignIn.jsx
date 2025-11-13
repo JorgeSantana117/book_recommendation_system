@@ -61,7 +61,7 @@ export default function SignIn() {
       <div className="app-shell-inner">
         <div className="auth-page">
           <div className="auth-card">
-            <h1 className="auth-title">Welcome back</h1>
+            <h1 className="auth-title">👋 Welcome back</h1>
             <p className="auth-subtitle">
               Sign in to explore the catalog and get tailored book suggestions.
             </p>

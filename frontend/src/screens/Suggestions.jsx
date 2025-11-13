@@ -42,7 +42,7 @@ export default function Suggestions() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Suggestions</h1>
+          <h1 className="page-title">✨ Suggestions</h1>
           <p className="page-subtitle">
             Titles recommended based on your feedback, ratings and hidden items.
           </p>

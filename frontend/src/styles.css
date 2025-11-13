@@ -89,6 +89,21 @@ a:hover {
   }
 }
 
+@keyframes pulseSoft {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4);
+  }
+  70% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 8px rgba(14, 165, 233, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
+  }
+}
+
 /* ------------------------------
    App shell
    ------------------------------ */
@@ -144,6 +159,7 @@ a:hover {
   justify-content: center;
   font-size: 18px;
   color: #f9fafb;
+  animation: pulseSoft 2800ms ease-out infinite;
 }
 
 .nav-text-main {
@@ -263,6 +279,7 @@ a:hover {
    ------------------------------ */
 
 .page {
+  position: relative;
   background: radial-gradient(circle at top left, #e0f2fe 0, transparent 55%),
     #ffffff;
   border-radius: var(--radius-lg);
@@ -297,6 +314,30 @@ a:hover {
   color: var(--muted);
 }
 
+/* glowing border effect for pages and auth card */
+.page::before,
+.auth-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 120deg,
+    rgba(14, 165, 233, 0),
+    rgba(14, 165, 233, 0.4),
+    rgba(129, 140, 248, 0.5),
+    rgba(14, 165, 233, 0)
+  );
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+  z-index: -1;
+}
+
+.page:hover::before,
+.auth-card:hover::before {
+  opacity: 1;
+}
+
 /* ------------------------------
    Auth layout
    ------------------------------ */
@@ -309,6 +350,7 @@ a:hover {
 }
 
 .auth-card {
+  position: relative;
   width: 100%;
   max-width: 420px;
   padding: 28px 26px 32px;
@@ -472,6 +514,17 @@ textarea:focus {
   margin-top: 14px;
 }
 
+/* staggered animation for book cards */
+.catalog-grid .book-card {
+  animation: cardPop 220ms ease-out;
+}
+
+.catalog-grid .book-card:nth-child(1) { animation-delay: 40ms; }
+.catalog-grid .book-card:nth-child(2) { animation-delay: 80ms; }
+.catalog-grid .book-card:nth-child(3) { animation-delay: 120ms; }
+.catalog-grid .book-card:nth-child(4) { animation-delay: 160ms; }
+.catalog-grid .book-card:nth-child(5) { animation-delay: 200ms; }
+
 .book-card {
   background: #ffffff;
   border-radius: 18px;
@@ -481,7 +534,6 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  animation: cardPop 220ms ease-out;
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease,
@@ -569,13 +621,22 @@ textarea:focus {
   margin-top: 16px;
 }
 
+/* staggered animation for suggestion cards */
+.suggestions-grid .suggestion-card {
+  animation: cardPop 220ms ease-out;
+}
+
+.suggestions-grid .suggestion-card:nth-child(1) { animation-delay: 40ms; }
+.suggestions-grid .suggestion-card:nth-child(2) { animation-delay: 80ms; }
+.suggestions-grid .suggestion-card:nth-child(3) { animation-delay: 120ms; }
+.suggestions-grid .suggestion-card:nth-child(4) { animation-delay: 160ms; }
+
 .suggestion-card {
   background: #ffffff;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.55);
   padding: 12px 14px 14px;
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
-  animation: cardPop 220ms ease-out;
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease,

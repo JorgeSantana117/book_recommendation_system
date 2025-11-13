@@ -41,7 +41,7 @@ export default function BookDetail() {
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">{b.title}</h1>
+          <h1 className="page-title">📖 {b.title}</h1>
           <p className="detail-meta">
             <i>{authors || 'Unknown author'}</i>
             {b.year ? ` · ${b.year}` : ''}
